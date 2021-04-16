@@ -101,7 +101,7 @@ def check_package(screen, package):
 	if return_code == 1:
 		apt_update = subprocess.Popen('apt update', shell=True)
 		apt_update.wait()
-		apt_install = subprocess.Popen('apt install' + ' ' + package, shell=True)
+		apt_install = subprocess.Popen('apt install -y' + ' ' + package, shell=True)
 		apt_install.wait()
 		if apt_install.poll() == 0:
 			screen.clear()
