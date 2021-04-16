@@ -15,7 +15,7 @@ import crypt
 
 menu = ['Install NFS', 'Exit Setup']
 
-def print_menu(screen, selected_row, menu):
+def print_menu(screen, selected_row, menu, option=0):
 	for i, row in enumerate(menu):
 		h, w = screen.getmaxyx()
 		x = w//2 - len(row)//2
@@ -165,22 +165,29 @@ def nfs_install(screen):
 	counter = 0
 	current_row = 0
 	curses.curs_set(0)
+	user_list = check_users()
+	user_list.append('Skip user')
+	user_list.append('No more user to add to sudo')
 	while counter != int(text_counter):		
-		user_list = check_users()
 		screen.clear()
 		print_center(screen, 'Add user to sudoers', 0, -5)
+		print_center(screen, 'User count: ' + str(counter), 0, 4)
 		print_menu(screen, current_row, user_list)
 		
 		key = screen.getch()
 		
 		if key == curses.KEY_UP and current_row > 0:
 			current_row -= 1
-		elif key == curses.KEY_DOWN and current_row < len(menu) - 1:
+		elif key == curses.KEY_DOWN and current_row < len(user_list) - 1:
 			current_row += 1
 		elif key == curses.KEY_ENTER or key in [10, 13]:
 			add_sudo = subprocess.run(['usermod', '-aG', 'sudo', user_list[current_row]], capture_output=True, text=True)
+			if current_row == int(len(user_list)-2):
+				counter += 1
+				continue
+			elif current_row == int(len(user_list)-1):
+				break
 			counter += 1
-		
 		screen.clear()
 		
 	screen.clear()
