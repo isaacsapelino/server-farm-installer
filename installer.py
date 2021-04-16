@@ -15,10 +15,7 @@ import crypt
 
 menu = ['Install NFS', 'Exit Setup']
 
-def print_menu(screen, selected_row):
-	screen.clear()
-	print_center(screen, 'Welcome to Installer.Py', 0, -9)
-	print_center(screen, 'Made by Isaac', 0, -8)
+def print_menu(screen, selected_row, menu):
 	for i, row in enumerate(menu):
 		h, w = screen.getmaxyx()
 		x = w//2 - len(row)//2
@@ -40,6 +37,17 @@ def print_center(screen, text, x, y):
 	screen.addstr(y,x,text)
 	screen.refresh()
 	return	
+
+def check_users():
+	users = subprocess.Popen(['cat', '/etc/passwd'], stdout=subprocess.PIPE)
+	p1 = subprocess.Popen(['grep', '/home'], stdin=users.stdout, stdout=subprocess.PIPE)
+	p2 = subprocess.Popen(['grep', '/bin/bash'], stdin=p1.stdout, stdout=subprocess.PIPE)
+	p3 = subprocess.Popen(['cut', '-d:', '-f1'], stdin=p2.stdout, stdout=subprocess.PIPE)
+	output = p3.communicate()[0]
+	clean_output = output.decode().split('\n')
+	clean_output.pop()
+	return clean_output
+
 
 def create_textbox(screen, h, w, y, x, placeholder="", deco=None, textColorPair=0, decoColorPair=0):
 	underlineChr=curses.ACS_HLINE
@@ -154,6 +162,27 @@ def nfs_install(screen):
 			print_center(screen, 'Error: Account creation has an unexpected error.', 0, -5)
 			screen.getch()
 			return
+	counter = 0
+	current_row = 0
+	curses.curs_set(0)
+	while counter != int(text_counter):		
+		user_list = check_users()
+		screen.clear()
+		print_center(screen, 'Add user to sudoers', 0, -5)
+		print_menu(screen, current_row, user_list)
+		
+		key = screen.getch()
+		
+		if key == curses.KEY_UP and current_row > 0:
+			current_row -= 1
+		elif key == curses.KEY_DOWN and current_row < len(menu) - 1:
+			current_row += 1
+		elif key == curses.KEY_ENTER or key in [10, 13]:
+			add_sudo = subprocess.run(['usermod', '-aG', 'sudo', user_list[current_row]], capture_output=True, text=True)
+			counter += 1
+		
+		screen.clear()
+		
 	screen.clear()
 	print_center(screen, 'Create an NFS export directory', 0, -5)
 	text = create_textbox(screen, 1, 40, 10, 20, deco="underline", decoColorPair=curses.color_pair(2))
@@ -206,7 +235,7 @@ def window(screen):
 	print_center(screen, 'Made by Isaac', 0, -8)
 	current_row = 0
 	
-	print_menu(screen, current_row)
+	print_menu(screen, current_row, menu)
 	
 	while True:
 		key = screen.getch()
@@ -221,8 +250,12 @@ def window(screen):
 				break
 			elif current_row == len(menu)-1:
 				break
-				
-		print_menu(screen, current_row)
+		screen.clear()
+		curses.curs_set(0)
+		screen.box()
+		print_center(screen, 'Welcome to Installer.Py', 0, -9)
+		print_center(screen, 'Made by Isaac', 0, -8)
+		print_menu(screen, current_row, menu)
 
 def main():
 	curses.wrapper(window)
